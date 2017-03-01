@@ -17,7 +17,8 @@ from random import randint
 from pprint import pprint
 import re
 import random
-
+import warnings
+warnings.filterwarnings("ignore")
 
 # TODOs:
 # I like 'a' 'b' and 'c' returns {"a' 'b' and 'c": 1.0}
