@@ -403,8 +403,19 @@ class Chatbot:
                 else:
                     self.ratings[movie][user] = 1
 
+    def cosine_similarity(self,v1,v2):
+        "compute cosine similarity of v1 to v2: (v1 dot v2)/{||v1||*||v2||)"
+        sumxx, sumxy, sumyy = 0, 0, 0
+        for i in range(len(v1)):
+            x = v1[i]; y = v2[i]
+            sumxx += x*x
+            sumyy += y*y
+            sumxy += x*y
+        return sumxy/math.sqrt(sumxx*sumyy)
+
     def distance(self, u, v):
         """Calculates a given distance function between vectors u and v"""
+        return self.cosine_similarity(u,v)
         if len(u) == len(v):
             sqrdsum = 0
             for i in range(len(u)):
@@ -412,6 +423,7 @@ class Chatbot:
             return math.sqrt(sqrdsum)
         else:
             return None
+
 
     def dotProduct(u,v):
         if len(u) == len(v):
@@ -421,6 +433,18 @@ class Chatbot:
             return dotproduct
         else:
             return Nones
+
+    def second_largest(self,numbers):
+        count = 0
+        m1 = m2 = float('-inf')
+        for x in numbers:
+            count += 1
+            if x > m2:
+                if x >= m1:
+                    m1, m2 = x, m1
+                else:
+                    m2 = x
+        return m2 if count >= 2 else None
 
     def recommend(self, usrmvDict, usrGenres, u):
         """Generates a list of movies based on the input vector u using
@@ -445,7 +469,11 @@ class Chatbot:
                 val += self.distance(self.ratings[movie], self.ratings[index]) * math.log(10 + 10*genSimCount)
             rxi.append(val)
         index = rxi.index(max(rxi))
-        return self.orgedTitlesWithoutYear[index]
+        mov = self.orgedTitlesWithoutYear[index]
+        if mov in userMovies:
+            index = rxi.index(self.second_largest(rxi))
+            mov = self.orgedTitlesWithoutYear[index]
+        return mov
 
     ##########################################################################
     # 4. Debug info                                                             #
