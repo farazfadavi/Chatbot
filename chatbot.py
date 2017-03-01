@@ -124,7 +124,6 @@ class Chatbot:
         #######################################################################
 
         response = ''
-
         # Add NOT_ before any negated word
         words = input.split()
         inNegScope = False
@@ -191,7 +190,7 @@ class Chatbot:
                 userResponse = self.extractGeneres(input)
                 genres, sentiment = userResponse.things, userResponse.sentiment
 
-                if movies and not sentiment:
+                if genres and not sentiment:
                     response += "I am not sure what your opinion is about %s. Can you clarify?" % self.conjPhraseFromList(
                         genres, False)
 
@@ -244,10 +243,22 @@ class Chatbot:
                 else:
                     response += self.inquireFurther('genres')
             if self.giveRecs:
-                response += " Based on the data you gave me, my recommendation to you is Avatar."
-
+                vec = [0 for i in range(len(self.titles))]
+                movPref = self.getDataMovies()
+                #TODO Genre Preference
+                genrePref = self.getDataGenres()
+                usrmvDict = {}
+                for i in range(len(self.orgedTitlesWithoutYear)):
+                    for movie in movPref:
+                        if movie in self.orgedTitlesWithoutYear[i]:
+                            usrmvDict[movie] = i
+                for movie in movPref:
+                    vec[usrmvDict[movie]] = self.userPrefs['movies'][movie]
+                response += " Based on the data you gave me, my recommendation to you is:" + str(self.recommend(usrmvDict, vec))
             #input =  self.extractMovies(input)
             #response = self.extractGeneres(input)
+            # I like "Avatar" "The Matrix" "Passengers"
+            # I Like "Comedy" "Action" "Thriller"
 
         return response
 
@@ -368,9 +379,12 @@ class Chatbot:
         # The values stored in each row i and column j is the rating for
         # movie i by user j
         self.titlesWithoutYear = set([])
+        self.orgedTitlesWithoutYear = []
         self.titles, self.ratings = ratings()
+        self.binarize()
         self.titlesPlain = [(title[0]) for title in self.titles]
         for title in self.titlesPlain:
+            self.orgedTitlesWithoutYear.append(list(self.handleArticle(title[:-7]))[0])
             self.titlesWithoutYear = self.titlesWithoutYear.union(
                 self.handleArticle(title[:-7]))
             # if len(self.handleArticle(title[:-7]))>1: print
@@ -380,13 +394,18 @@ class Chatbot:
 
     def binarize(self):
         """Modifies the ratings matrix to make all of the ratings binary"""
-
-        pass
+        for movie in range(len(self.ratings)):
+            for user in range(len(self.ratings[movie])):
+                val = self.ratings[movie][user]
+                if val == 0:
+                    self.ratings[movie][user] = 0
+                elif val < 2.5:
+                    self.ratings[movie][user] = -1
+                else:
+                    self.ratings[movie][user] = 1
 
     def distance(self, u, v):
         """Calculates a given distance function between vectors u and v"""
-        # TODO: Implement the distance function between vectors u and v]
-        # Note: you can also think of this as computing a similarity measure
         if len(u) == len(v):
             sqrdsum = 0
             for i in range(len(u)):
@@ -395,13 +414,34 @@ class Chatbot:
         else:
             return None
 
-    def recommend(self, u):
+    def dotProduct(u,v):
+        if len(u) == len(v):
+            dotproduct = 0
+            for i in range(len(u)):
+                dotproduct += u[i] * v[i]
+            return dotproduct
+        else:
+            return Nones
+
+    def recommend(self, usrmvDict, u):
         """Generates a list of movies based on the input vector u using
-        collaborative filtering"""
+        collaborative filtering
+        u: is a vector of size len(self.titles) that is the users binarized ratings for all movies; 0 for unrated
+        self.ratings[movies][user]: is all the movies (9125) and the ratings of all users (671)
+        """
         # TODO: Implement a recommendation function that takes a user vector u
         # and outputs a list of movies recommended by the chatbot
-        print "self.distance([1,2],[1,2]):", self.distance([1,2],[1,2])
-        pass
+        rxi = []
+        userMovies = self.getDataMovies()
+        for movie in range(len(self.ratings)):
+            val = 0
+            for usrmv in usrmvDict.keys():
+                index = usrmvDict[usrmv]
+                #               s_{ij}
+                val += self.distance(self.ratings[movie], self.ratings[index])
+            rxi.append(val)
+        index = rxi.index(max(rxi))
+        return self.orgedTitlesWithoutYear[index]
 
     ##########################################################################
     # 4. Debug info                                                             #
@@ -411,6 +451,9 @@ class Chatbot:
         """Returns debug information as a string for the input string from the REPL"""
         # Pass the debug information that you may think is important for your
         # evaluators
+        # I like "Avatar" "The Matrix" "Passengers"
+        # I Like "Comedy" "Action" "Thriller"
+        # len(movies.txt) = 9125 (index 9124)
         debug_info = 'debug info'
         return debug_info
 
