@@ -253,7 +253,7 @@ class Chatbot:
                             usrmvDict[movie] = i
                 for movie in movPref:
                     vec[usrmvDict[movie]] = self.userPrefs['movies'][movie]
-                response += " Based on the data you gave me, my recommendation to you is:" + str(self.recommend(usrmvDict, genrePref, vec))
+                response += " Based on the data you gave me, my recommendation to you is: " + str(self.recommend(usrmvDict, genrePref, vec))
             #input =  self.extractMovies(input)
             #response = self.extractGeneres(input)
             # I like "Avatar" "The Matrix" "Passengers"
