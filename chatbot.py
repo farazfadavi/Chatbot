@@ -413,9 +413,15 @@ class Chatbot:
             sumxy += x*y
         return sumxy/math.sqrt(sumxx*sumyy)
 
+    def cosine_measure(self, v1, v2):
+        prod = self.dotProduct(v1, v2)
+        len1 = math.sqrt(self.dotProduct(v1, v1))
+        len2 = math.sqrt(self.dotProduct(v2, v2))
+        return prod / (len1 * len2)
+
     def distance(self, u, v):
         """Calculates a given distance function between vectors u and v"""
-        return self.cosine_similarity(u,v)
+        return self.cosine_measure(u,v)
         if len(u) == len(v):
             sqrdsum = 0
             for i in range(len(u)):
@@ -425,7 +431,7 @@ class Chatbot:
             return None
 
 
-    def dotProduct(u,v):
+    def dotProduct(self,u,v):
         if len(u) == len(v):
             dotproduct = 0
             for i in range(len(u)):
