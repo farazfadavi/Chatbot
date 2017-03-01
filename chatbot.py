@@ -245,7 +245,6 @@ class Chatbot:
             if self.giveRecs:
                 vec = [0 for i in range(len(self.titles))]
                 movPref = self.getDataMovies()
-                #TODO Genre Preference
                 genrePref = self.getDataGenres()
                 usrmvDict = {}
                 for i in range(len(self.orgedTitlesWithoutYear)):
@@ -254,7 +253,7 @@ class Chatbot:
                             usrmvDict[movie] = i
                 for movie in movPref:
                     vec[usrmvDict[movie]] = self.userPrefs['movies'][movie]
-                response += " Based on the data you gave me, my recommendation to you is:" + str(self.recommend(usrmvDict, vec))
+                response += " Based on the data you gave me, my recommendation to you is:" + str(self.recommend(usrmvDict, genrePref, vec))
             #input =  self.extractMovies(input)
             #response = self.extractGeneres(input)
             # I like "Avatar" "The Matrix" "Passengers"
@@ -423,22 +422,27 @@ class Chatbot:
         else:
             return Nones
 
-    def recommend(self, usrmvDict, u):
+    def recommend(self, usrmvDict, usrGenres, u):
         """Generates a list of movies based on the input vector u using
         collaborative filtering
         u: is a vector of size len(self.titles) that is the users binarized ratings for all movies; 0 for unrated
         self.ratings[movies][user]: is all the movies (9125) and the ratings of all users (671)
+        self.titles[movieIndex][1]: all the genres the film is in
         """
-        # TODO: Implement a recommendation function that takes a user vector u
-        # and outputs a list of movies recommended by the chatbot
         rxi = []
+        divisor = len(usrGenres)
         userMovies = self.getDataMovies()
         for movie in range(len(self.ratings)):
             val = 0
+            mvGen = self.titles[movie][1]
+            genSimCount = 0
+            for genre in usrGenres:
+                if genre in mvGen:
+                    genSimCount += 1
             for usrmv in usrmvDict.keys():
                 index = usrmvDict[usrmv]
                 #               s_{ij}
-                val += self.distance(self.ratings[movie], self.ratings[index])
+                val += self.distance(self.ratings[movie], self.ratings[index]) * math.log(10 + 10*genSimCount)
             rxi.append(val)
         index = rxi.index(max(rxi))
         return self.orgedTitlesWithoutYear[index]
