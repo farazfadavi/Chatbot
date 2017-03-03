@@ -23,9 +23,20 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # TODOs:
-# Modify asking about genres
-# Debug
 # Say different things about movies in one line
+# I saw "Titanic (1997)".
+#> I thought "awd (1220)" was a really great movie.
+#Charlie> So you really like "Titanic". Tell me about some more movies please.
+#> "matrix (1999)"
+#Charlie> I am not sure what your opinion is about "Matrix, The". Can you clarify?
+#> I didn't really like "Titanic (1953)"
+#"the matrix"
+
+# year problem
+#> "matrix, the"
+#Charlie> I am not sure what your opinion is about "Matrix, The". Can you clarify?
+
+#i not like "The Matrix"
 
 class Response:
 
@@ -41,7 +52,7 @@ class Chatbot:
     punc = [",", "!", ".", ";", "?", "but", "yet"]
     negationWords = ['never', 'haven\'t', 'hadn\'t', 'not', 'nor',
                      "n't", "didn't", "wasn't", "don't", "dont", "didnt", "wasnt"]
-
+    deicticals = "it they them this that those these".split()
     ##########################################################################
     # `moviebot` is the default chatbot. Change it to your chatbot's name       #
     ##########################################################################
@@ -61,6 +72,8 @@ class Chatbot:
         self.recommendedGenres = []
 
         self.askAboutEmotion = 1
+        self.numMoviesToAskAbout = 5
+        self.numGenresToAskAbout = 5
         self.askAboutMovies = True
         self.askAboutGenres = False
         self.giveRecs = False
@@ -70,7 +83,7 @@ class Chatbot:
         """Return a catch-all response about some sentiment which is not associated with any movie or genre.
         Then, suggest to the user to go back to the topic of movies/genres."""
         self.askAboutEmotion += 1
-
+        noRec = " By the way, I did not recognize any movie or genre title in your response."
         word = random.choice(
             [w for w in words if not w.lower() in self.genres])
         wordSentiment = self.sentiment.get(word)
@@ -78,12 +91,12 @@ class Chatbot:
             return random.choice(["What do you %s about it?",
                                   "Why do you %s it?",
                                   "What makes you %s it?",
-                                  ]) % word + self.addendumMild()
+                                  ]) % word + noRec + self.addendumMild()
         if word in ["liked", "loved", "hated", "disliked", "enjoyed"]:
             return random.choice(["What did you %s about it?",
                                   "Why did you %s it?",
                                   "What made you %s it?",
-                                  ]) % word + self.addendumMild()
+                                  ]) % word + noRec+ self.addendumMild()
         else:
             newWord = word
         if sentiment > 0:
@@ -94,19 +107,19 @@ class Chatbot:
                                       "What makes you feel it is %s?",
                                       "And what makes it so %s?",
                                       "Is there any particular reason you feel it is %s?",
-                                      ]) % newWord + self.addendumMild()
+                                      ]) % newWord + noRec + self.addendumMild() 
             elif word.lower() in ['happy', 'glad', 'satisfied', 'curious']:
                 sent = random.choice(["I am not sure what you are %s about. Please explain.",
                                       "What makes you feel %s?",
                                       "And how does it feel to be %s?",
                                       "Is there any particular reason you feel %s?",
-                                      ]) % newWord + self.addendumMild()
+                                      ]) % newWord + noRec + self.addendumMild()
             else:
                 sent = random.choice(["I am happy to hear you feel that way.",
                                       "I am glad you feel that way.",
                                       "That is good to hear.",
                                       "Ok, that's good.",
-                                      "I appreciate you sharing it with me."]) + self.addendum()
+                                      "I appreciate you sharing it with me."]) + noRec + self.addendum()
 
             return sent
         if sentiment < 0:
@@ -118,7 +131,7 @@ class Chatbot:
                                       "What makes you feel it is %s?",
                                       "And what makes it so %s?",
                                       "Is there any particular reason you feel it is %s?",
-                                      ]) % newWord + self.addendumMild()
+                                      ]) % newWord + noRec + self.addendumMild()
             elif word.lower() in ['sad', 'angry', 'unhappy', 'upset', 'bored']:
                 #"Is there anything I can do to make you not %s?"
                 sent = random.choice(["I am not sure what you are %s about. Please explain.",
@@ -128,13 +141,13 @@ class Chatbot:
                                       "And how does it feel to be %s?",
                                       "Is there any particular reason you feel %s?",
 
-                                      ]) % newWord + self.addendumMild()
+                                      ]) % newWord + noRec + self.addendumMild()
             else:
                 sent = random.choice(["I am sorry to hear you feel that way.",
                                       "That is not so good to hear.",
                                       "I am sorry to hear that. Would you like to elaborate?",
                                       "Ok, gotcha.",
-                                      "I appreciate you sharing it with me."]) + self.addendum()
+                                      "I appreciate you sharing it with me."]) + noRec + ' '+self.addendum()
             return sent
 
     def askForClarification(self):
@@ -153,7 +166,7 @@ class Chatbot:
             elif self.askAboutMovies:
                 morg = "movies"
 
-            return " %s %s." % (random.choice(["We can also go back to discussing",
+            return "%s %s." % (random.choice(["We can also go back to discussing",
                                                "Actually, if you don't mind, let's go back to",
                                                "I suggest we go back to",
                                                "I think the best idea right now, if it's fine with you, would be going back to",
@@ -249,7 +262,7 @@ class Chatbot:
                 # For each movie, look for it in the database
             for title in self.titles:
                 # If it is a spelling variant of some movie in the database,
-                if movie in self.handleArticle(title[0][:-7]):
+                if self.titlesDict.get(movie) == title[0][:-7]:# movie in self.handleArticle(title[0][:-7]):
                     # Get all of its genres
                     genre = random.choice(title[1].split('|'))
                     if genre[0].lower() in 'aeiou':  # Modify the article
@@ -262,7 +275,7 @@ class Chatbot:
                     return random.choice(["All I can say is that \"%s\" is %s %s movie from %s. I am sorry if this does not answer your question.",
                                           "According to my database, \"%s\" is %s %s movie from %s.",
                                           "Well, I can tell you that \"%s\" is %s %s movie from %s."
-                                          ]) % (movie, article, genre, year)
+                                          ]) % (movie, article, genre.lower(), year) + self.addendum()
         # If no movie found in the database, say so.
         return "I have no data about %s. Apologies." % self.conjPhraseFromList(movies, True)
 
@@ -330,25 +343,37 @@ class Chatbot:
         #######################################################################
         response = ''
 
-        # I like "Avatar", "La Bamba" and "The Matrix" (1999)
 
         # Add NOT_ before any negated word
         words = input.split()
         inNegScope = False
+        inQuotes = False
         for i in range(len(words)):
             tok1 = words[i]
             if tok1.lower() in self.negationWords:
                 inNegScope = True
+            if "\"" in tok1:
+                if inQuotes:
+                    inQuotes = False
+                else:
+                    inQuotes= True
             if tok1 in self.punc:
                 inNegScope = False
 
-            if inNegScope and not tok1 in self.negationWords:
+            if inNegScope and (not tok1 in self.negationWords) and (not inQuotes) and (not '\"' in tok1):
                 words[i] = "NOT_" + tok1
         input = ' '.join(words)
-
+        #I don't really like "The Matrix"
+        if input.lower().strip() in ["thank you","thank you!","I thank you", "may I thank you"]:
+            return "You're welcome!"
+        if input.lower().strip() in ["hi","hello","hi!","hello!","hi there","hi there!","hello there!"]:
+            return random.choice([h for h in ["Hi","Hello","Hi!","Hello!","Hi there","Hi there!","Hello there!"] if h !=input.lower().strip()])
+        
         if self.isQuestion(input):
             # If the input is recognized as a question
             return self.processQuestion(input)
+        
+        
 
         else:
 
@@ -365,25 +390,12 @@ class Chatbot:
                 # self.extractMovies
                 # If the bot remembers reference to an unrated movie from a
                 # previous line,
-                if self.deixis and not movies and self.contains(input, self.deictcals):
-                                                                                       # and no new movies are mentioned in this line, and this line contains
-                                                                                       # a deictical expression (such as 'it','this','that').
-                                                                                       # For example, if the user typed 'I watched "The Matrix"', then the bot remembers
-                                                                                       # "The Matrix" but it doesn't know what is the user's ranking. Now, the bot memorizes
-                                                                                       # "The Matrix" in the self.deixis field, and when the user says something with a
-                                                                                       # deictical
-                                                                                       # expression,
-                                                                                       # the
-                                                                                       # bot
-                                                                                       # assumes
-                                                                                       # it
-                                                                                       # refers
-                                                                                       # to
+                if self.deixis and (not movies) and self.contains(input, self.deicticals):
                                                                                        # the
                                                                                        # movie.
                     movies = self.deixis  # define the movies variable to be the memorized deixis
-                # If the bot found any movies, it will add to the response the
-                # echo of those movies:
+                                          # If the bot found any movies, it will add to the response the
+                                          # echo of those movies:
                 if movies and not sentiment:
                     # The bot is not sure what the user thinks about these
                     # movies and so asks for clarification and saves them in
@@ -436,7 +448,7 @@ class Chatbot:
                         # in the bot's database
                         unks = [movie for movie in movies if not movie in indb]
                         # Explain that the bot has no data about these movies:
-                        unkString += ' Unfortunately, I do not have data about ' + self.conjPhraseFromList(unks) + ','\
+                        unkString += ' Unfortunately, I do not have data about ' + self.conjPhraseFromList(unks) + ', '\
                             'so I will not be able to take them into account in my recommendation.'
 
                     # Create a string which represents the list of movies
@@ -445,15 +457,15 @@ class Chatbot:
                     # Mention it if the bot aleady has information about some
                     # movies:
                     if prevSame:
-                        response += random.choice(["Well, I already had this information about %s.",
-                                                   "Yes, I am aware of your opinion about %s.",
-                                                   "Your rating of %s is already registered in the system, thank you."]) % self.conjPhraseFromList(prevSame, True)
+                        response += random.choice(["Well, I already had this information about %s. ",
+                                                   "Yes, I am aware of your opinion about %s. ",
+                                                   "Your rating of %s is already registered in the system, thank you. "]) % self.conjPhraseFromList(prevSame, True)
 
                     if prevDiff:
-                        response += random.choice(['I am revising your opinion about %s... Done. ',
-                                                   'Gotcha, updating your listed rating of %s... Done. ',
-                                                   'Right, so you\'re giving me a new opinion on %s. I\'m updating your data... Done. '
-                                                   ]) % self.conjPhraseFromList(prevDiff, True)
+                        response += random.choice(['I am revising your opinion about \"%s\"... Done. ',
+                                                   'Gotcha, updating your listed rating of \"%s\"... Done. ',
+                                                   'Right, so you\'re giving me a new opinion on \"%s\". I\'m updating your data... Done. '
+                                                   ]) % self.conjPhraseFromList(prevDiff, False)
 
                     # According to the sentiment, add a verb to the response
                     if sentiment > 1:
@@ -475,7 +487,6 @@ class Chatbot:
                         # If no movies were found in the response, ask for
                         # clarification.
 
-                    # The same, only for genres
                     for genre in self.userGenres():
                         if self.userGenres().count(genre) > 2 and not genre in self.recommendedGenres and not genre in userGenresOld:
                             response += random.choice([' Hmm, it seems you like %s movies!',
@@ -508,45 +519,48 @@ class Chatbot:
                         response += self.respondToEmotion(
                             sentimentWords, sentiment)
                 elif genres:
-                    prev = []
+                    self.deixis=None # reset the deixis field
+                    prevSame = [] # Already rated movies with unchanged rating
+                    prevDiff = [] # Already rated movies with changed rating
                     indb = self.genres.intersection(genres)
                     for genre in indb:
-                        if genre in self.userPrefs['genres'].keys():
-                            prev.append(genre)
+                        if genre in self.userPrefs['genres'].keys() and self.userPrefs['genres'][genre]==sentiment:
+                                prevSame.append(genre)
+                        elif genre in self.userPrefs['genres'].keys():
+                            prevDiff.append(genre)
                         self.userPrefs['genres'][genre] = sentiment
                     unkString = ''
                     if indb != set(genres):
                         unks = [genre for genre in genres if not genre in indb]
-                        unkString += ' Unfortunately, I do not have data about ' + self.conjPhraseFromList(unks) + ',\n'\
+                        unkString += ' Unfortunately, I do not have data about ' + self.conjPhraseFromList(unks) + ', '\
                             'so I will not be able to take them into account in my recommendation.'
                     # Create a string which represents the list of movies
-                    if prev:
-                        response += random.choice(['I am revising your opinion about %s. ',
-                                                   'Gotcha, updating your listed rating of %s. ',
-                                                   'Right, so you\'re giving me a new opinion on %s. '
-                                                   ]) % self.conjPhraseFromList(prev, False)
-                    if len(genres) > 1:
-                        genresString = ", ".join(["\"%s\"" % genre for genre in genres[
-                                                 :-1]]) + " and \"%s\"" % genres[-1]
-                    else:
-                        genresString = "\"%s\"" % genres[0]
+                    genresString = self.conjPhraseFromList(genres, False)
+                    if prevSame: response += random.choice(["Well, I already had this information about %s.",
+                                                            "Yes, I am aware of your opinion about %s.",
+                                                            "Your rating of %s is already registered in the system, thank you."]) % self.conjPhraseFromList(prevSame, True)
+                    
+                    if prevDiff: response += random.choice(['I am revising your opinion about %s... Done. ' ,
+                                                        'Gotcha, updating your listed rating of %s... Done. ',
+                                                        'Right, so you\'re giving me a new opinion on %s. I\'m updating your data... Done. '
+                                                        ])% self.conjPhraseFromList(prevDiff, True) 
 
                     # According to the sentiment, add a verb to the response
-                    if sentiment > 0:
-                        verb = 'like'
-                    else:
-                        verb = "don't like"
-
+                    if sentiment >1: 
+                        verb = 'really like'
+                    elif sentiment>0: 
+                        verb='like'
+                    elif sentiment <-1: verb="really don't like"
+                    elif sentiment <0: verb = "don't like"
                     if verb:
-                        response += 'Ok, you %s %s.' % (verb, genresString)
+                        response += '%s %s %s.' %(random.choice(['Ok, so you','You','So you','Ok, you']),verb,genresString ) # Echoing the user's response
+                        response += unkString
                     else:
-                        response += 'I am not quite sure how you feel about %s' % genresString
-                # If no movies were found in the response, ask for
-                # clarification.
-                else:
-                    response += self.askForClarification()
+                        # If there is a movie but the sentiment is 0
+                        response += 'I am not quite sure how you feel about %s' % genresString 
+                        # If no movies were found in the response, ask for clarification.
 
-            if self.firstTimeAskAboutGenres and self.getNumDataMovies() > 2:
+            if self.firstTimeAskAboutGenres and self.getNumDataMovies() > self.numMoviesToAskAbout:
                 self.askAboutMovies = False
                 self.askAboutGenres = True
                 response += " Now tell me about some genres and what whether you like them."
@@ -555,7 +569,7 @@ class Chatbot:
 
             elif self.firstTimeAskAboutGenres and verb:
                 response += self.inquireFurther('movies')
-            if self.getNumDataGenres() > 2:
+            if self.getNumDataGenres() > self.numGenresToAskAbout:
                 self.askAboutMovies = False
                 self.askAboutGenres = False
                 self.giveRecs = True
@@ -579,7 +593,11 @@ class Chatbot:
                 for movie in movPref:
                     vec[usrmvDict[movie]] = 1
                     vec[usrmvDict[movie]] = self.userPrefs['movies'][movie]
-                response += " Based on the data you gave me, my recommendation to you is: " + str(self.recommend(usrmvDict, genrePref, vec))
+                response += " Based on the data you gave me, my recommendation to you is: " + str(self.recommend(usrmvDict, genrePref, vec)) +"\nIf you want you can tell me about some more movies and genres so I can update my recommendation. Let's start with movies."
+                self.giveRecs=False
+                self.numMoviesToAskAbout += 5
+                self.numGenresToAskAbout += 5 
+                self.askAboutMovies=True
             #input =  self.extractMovies(input)
             #response = self.extractGeneres(input)
             # I like "Avatar" "The Matrix" "Passengers"
@@ -595,13 +613,14 @@ class Chatbot:
         for movie in self.userPrefs['movies'].keys():
             if self.userPrefs['movies'][movie] > 0:
                 for title in self.titles:
-                    if movie in self.handleArticle(title[0]):
+                    if movie == title[0]:# movie in self.handleArticle(title[0]): 
                         userGenres.extend(title[1].split('|'))
+                        
         return userGenres
 
     def getGenerePat(self):
         return '(' + '|'.join(self.genres) + ')'
-
+# "Avatar" and "Passengers" "Matrix" "sicario" "watchmen" "scarface"
     # Pattern for finding a movie and an optional year in double quotation
     # marks
     quatedMovieNamePatter = "\"([A-Za-z,\(\)!&.:\- '\d]+)( \(\d\d\d\d\))?\""
@@ -621,20 +640,25 @@ class Chatbot:
         movies = []
         warnings = []
         for movie in moviesAndYear:
+            year = re.findall(" \((\d\d\d\d)\)$", movie[0])
+            if year:
+                year=year[0]
+                movie = movie[0][:-7] 
+            else: movie=movie[0]
             # For each movie, year pair:
             # Get the mapped name of the movie the user talks about
-            title = self.titlesDict.get(movie[0])
+            title = self.titlesDict.get(movie)
             if title:
                 # If this movie has a name in the database, append the official
                 # name to the list of movies
                 movies.append(title[:-7])
             else:  # Otherwise, just append the name of the movie. this will not be taken into account in the user's preferences
-                movies.append(movie[0])
-            if title and movie[1] and movie[1][-5:-1] != title[-5:-1]:
+                movies.append(movie)
+            if title and year and year != title[-5:-1]:
                 # If a year was found in the user's response, and it is not the
                 # correct year for this movie, then mention it.
-                warnings.append("(Just saying, %s actually aired on %s. I am going to assume this is what you meant.) " % (
-                    movie[0], title[-5:-1]))
+                warnings.append("Just saying, \"%s\" actually aired on %s. I am going to assume this is what you meant. " % (
+                    movie, title[-5:-1]))
         line = re.sub(self.quatedMovieNamePatter, '', line)
         return movies, line, warnings
 
@@ -660,6 +684,7 @@ class Chatbot:
             if sentiment:
                 if sentiment == 'pos':
                     sentiment = 1.0
+                    
                 elif sentiment == 'neg':
                     sentiment = -1.0
                 if negated:
@@ -734,23 +759,22 @@ class Chatbot:
             artsRemoved = re.sub('((^|\) )%s |, %s( \(|$))' % (
                 self.articles, self.articles), '', title)  # Title with articles removed
             newTitles.append(artsRemoved)  # Save title with articles removed
-            # Save title with articles removed and lower case
+            
             newTitles.append(artsRemoved.lower())
+            
             if find:
                 # If there are final articles (of the form ", the"), move them
                 # to the beginning and save the result (both capitalized and
                 # lower)
+                
                 newTitles.append(find[0].capitalize() +
                                  ' ' + title[:-2 - len(find[0])])
                 newTitles.append(find[0].lower() + ' ' +
                                  title[:-2 - len(find[0])])
-            else:
+            elif True:
                 newTitles.append(title)
         return set(newTitles)
 
-    def inDataBase(self, title):
-        "Old. I think useless."
-        return set(self.handleArticle(title)).intersection(self.titlesWithoutYear)
 
     def read_data(self):
         """Reads the ratings matrix from file"""
@@ -783,7 +807,6 @@ class Chatbot:
                 [(handledTitle, title[-5:-1]) for handledTitle in handled]))  # Keep track with years
         reader = csv.reader(open('data/sentiment.txt', 'rb'))
         self.sentiment = dict(reader)
-        print self.titlesPlain
 
 
     def binarize(self):
@@ -798,16 +821,6 @@ class Chatbot:
                 else:
                     self.ratings[movie][user] = 1
 
-    def cosine_similarity(self,v1,v2):
-        "compute cosine similarity of v1 to v2: (v1 dot v2)/{||v1||*||v2||)"
-        sumxx, sumxy, sumyy = 0, 0, 0
-        for i in range(len(v1)):
-            x = v1[i]; y = v2[i]
-            sumxx += x*x
-            sumyy += y*y
-            sumxy += x*y
-        return sumxy/math.sqrt(sumxx*sumyy)
-
     def cosine_measure(self, v1, v2):
         prod = self.dotProduct(v1, v2)
         len1 = math.sqrt(self.dotProduct(v1, v1))
@@ -816,14 +829,7 @@ class Chatbot:
 
     def distance(self, u, v):
         """Calculates a given distance function between vectors u and v"""
-        return self.cosine_similarity(u,v)
-        if len(u) == len(v):
-            sqrdsum = 0
-            for i in range(len(u)):
-                sqrdsum += (u[i] - v[i])**2
-            return math.sqrt(sqrdsum)
-        else:
-            return None
+        return self.cosine_measure(u,v)
 
 
     def dotProduct(self,u,v):
@@ -833,7 +839,7 @@ class Chatbot:
                 dotproduct += u[i] * v[i]
             return dotproduct
         else:
-            return Nones
+            return None
 
     def second_largest(self,numbers):
         count = 0
@@ -870,8 +876,8 @@ class Chatbot:
             for usrmv in usrmvDict.keys():
                 index = usrmvDict[usrmv]
                 #               s_{ij}
-                val += self.distance(self.ratings[movie], self.ratings[index]) * math.log(10 + 10*genSimCount)
-            rxi.append(val)
+                val += self.distance(self.ratings[movie], self.ratings[index])
+            rxi.append(val* math.log(10 + 10*genSimCount))
         index = rxi.index(max(rxi))
         mov = self.titles[index][0]
         if mov in userMovies:
@@ -900,6 +906,7 @@ class Chatbot:
       Charlie is a happy little chatbot that provides users with movie recommendations based on their opinion of a number of movies and genres.
       Users provide their opinion on at least 5 movies and 5 genres, and the chatbot applies the collaborative filtering method to find
       the movies they are most likely to enjoy based on the ratings of users from Netflix. Charlie can also provide some information about the movies in his database.
+      At any point, type ":quit" to exit the system.
       """
 
     ##########################################################################
