@@ -24,8 +24,6 @@ warnings.filterwarnings("ignore")
 
 # TODOs:
 
-# add strong words
-# intensifier
 #edit distance
 #I liked "Titanic", but "Cinderella" was not good.i 
 
@@ -253,7 +251,7 @@ class Chatbot:
                 # For each movie, look for it in the database
             for title in self.titles:
                 # If it is a spelling variant of some movie in the database,
-                if self.titlesDict.get(movie) == title[0][:-7]:# movie in self.handleArticle(title[0][:-7]):
+                if self.titlesDict.get(movie) == title[0]:# movie in self.handleArticle(title[0][:-7]):
                     # Get all of its genres
                     genre = random.choice(title[1].split('|'))
                     if genre[0].lower() in 'aeiou':  # Modify the article
@@ -320,7 +318,10 @@ class Chatbot:
 
     def getNumDataGenres(self):
         return len(self.getDataGenres())
-
+    
+    
+    intensifiers = ("really","very","so much")
+    
     def process(self, input):
         """Takes the input string from the REPL and call delegated functions
         that
@@ -333,8 +334,13 @@ class Chatbot:
         # highly recommended                                                        #
         #######################################################################
         response = ''
-
-
+        nints = sum([input.count(intensifier+' ') for intensifier in self.intensifiers])
+        for intensifier in self.intensifiers:
+            while intensifier in input:
+                input = input.replace(intensifier+' ', '')
+                
+        
+        
         # Add NOT_ before any negated word
         words = input.split()
         inNegScope = False
@@ -354,6 +360,10 @@ class Chatbot:
             if inNegScope and (not tok1 in self.negationWords) and (not inQuotes) and (not '\"' in tok1):
                 words[i] = "NOT_" + tok1
         input = ' '.join(words)
+
+
+
+        
         #I don't really like "The Matrix"
         if input.lower().strip() in ["thank you","thank you!","I thank you", "may I thank you"]:
             return "You're welcome!"
@@ -377,7 +387,7 @@ class Chatbot:
                 for warning in warnings:
                     response += warning  # Add each warning to the bot's eventual response
                 # These are the components extracted by
-                movies, sentiment, sentimentWords = userResponse.things, userResponse.sentiment, userResponse.words
+                movies, sentiment, sentimentWords = userResponse.things, userResponse.sentiment*math.log(10 + 10*nints,10), userResponse.words
                 # self.extractMovies
                 # If the bot remembers reference to an unrated movie from a
                 # previous line,
@@ -463,10 +473,14 @@ class Chatbot:
                                                    ]) % self.conjPhraseFromList(prevDiff, False)
 
                     # According to the sentiment, add a verb to the response
-                    if sentiment > 1:
+                    if sentiment>1.4:
+                        verb = 'really really like'
+                    elif sentiment > 1:
                         verb = 'really like'
                     elif sentiment > 0:
                         verb = 'like'
+                    elif sentiment <-1.4:
+                        verb = "really really don't like"
                     elif sentiment < -1:
                         verb = "really don't like"
                     elif sentiment < 0:
@@ -496,7 +510,7 @@ class Chatbot:
             if self.askAboutGenres:
                 input = input.lower()
                 userResponse = self.extractGeneres(input)
-                genres, sentiment, sentimentWords = userResponse.things, userResponse.sentiment, userResponse.words
+                genres, sentiment, sentimentWords = userResponse.things, userResponse.sentiment*math.log(10 + 10*nints,10), userResponse.words
                 if self.deixis and not genres:
                     genres = self.deixis
 
@@ -542,15 +556,23 @@ class Chatbot:
                                                         ])% self.conjPhraseFromList(prevDiff, True) 
 
                     # According to the sentiment, add a verb to the response
-                    if sentiment >1: 
+
+                    if sentiment>1.4:
+                        verb = 'really really like'
+                    elif sentiment > 1:
                         verb = 'really like'
-                    elif sentiment>0: 
-                        verb='like'
-                    elif sentiment <-1: verb="really don't like"
-                    elif sentiment <0: verb = "don't like"
+                    elif sentiment > 0:
+                        verb = 'like'
+                    elif sentiment <-1.4:
+                        verb = "really really don't like"
+                    elif sentiment < -1:
+                        verb = "really don't like"
+                    elif sentiment < 0:
+                        verb = "don't like"
                     if verb:
-                        response += '%s %s %s.' %(random.choice(['Ok, so you','You','So you','Ok, you']),verb,genresString ) # Echoing the user's response
-                        response += unkString
+                        # Echoing the user's response
+                        response += '%s %s %s.' % (random.choice(['Ok, so you', 'You', 'So you', 'Ok, you']), verb, genresString)
+                        response += unkString                    
                     else:
                         # If there is a movie but the sentiment is 0
                         response += 'I am not quite sure how you feel about %s' % genresString 
@@ -688,9 +710,10 @@ class Chatbot:
             if sentiment:
                 if sentiment == 'pos':
                     sentiment = 1.0
-                    
+                    if word.lower() in ["love","amazing","fantastic","great","awesome"]: sentiment += 1
                 elif sentiment == 'neg':
                     sentiment = -1.0
+                    if word.lower() in ["hate","disgusting","horrible"]: sentiment -= 1
                 if negated:
                     sentiment *= -1.0
                 sentimentScore += sentiment
