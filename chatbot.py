@@ -874,7 +874,7 @@ class Chatbot:
             rxi.append(val)
         index = rxi.index(max(rxi))
         mov = self.titles[index][0]
-        while mov in userMovies:
+        if mov in userMovies:
             index = rxi.index(self.second_largest(rxi))
             mov = self.titles[index][0]
         return mov
