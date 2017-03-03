@@ -23,20 +23,11 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # TODOs:
-# Say different things about movies in one line
-# I saw "Titanic (1997)".
-#> I thought "awd (1220)" was a really great movie.
-#Charlie> So you really like "Titanic". Tell me about some more movies please.
-#> "matrix (1999)"
-#Charlie> I am not sure what your opinion is about "Matrix, The". Can you clarify?
-#> I didn't really like "Titanic (1953)"
-#"the matrix"
 
-# year problem
-#> "matrix, the"
-#Charlie> I am not sure what your opinion is about "Matrix, The". Can you clarify?
-
-#i not like "The Matrix"
+# add strong words
+# intensifier
+#edit distance
+#I liked "Titanic", but "Cinderella" was not good.i 
 
 class Response:
 
@@ -136,7 +127,7 @@ class Chatbot:
                 #"Is there anything I can do to make you not %s?"
                 sent = random.choice(["I am not sure what you are %s about. Please explain.",
                                       "What makes you feel %s?",
-                                      "Thank you for sharing this with me. We can continue this discussion if you want."
+                                      "Thank you for sharing this with me. We can continue this discussion if you want.",
                                       "I am sorry to hear you are %s! Feel free to tell me more about it.",
                                       "And how does it feel to be %s?",
                                       "Is there any particular reason you feel %s?",
@@ -166,7 +157,7 @@ class Chatbot:
             elif self.askAboutMovies:
                 morg = "movies"
 
-            return "%s %s." % (random.choice(["We can also go back to discussing",
+            return " %s %s." % (random.choice(["We can also go back to discussing",
                                                "Actually, if you don't mind, let's go back to",
                                                "I suggest we go back to",
                                                "I think the best idea right now, if it's fine with you, would be going back to",
@@ -426,7 +417,11 @@ class Chatbot:
                     prevDiff = []  # Already rated movies with changed rating
                     # all the movies in the input line which are in the bot's
                     # database
-                    indb = self.titlesWithoutYear.intersection(movies)
+                    indb=[]
+                    for movie in movies:
+                        title =  self.titlesDict.get(movie)
+                        if title: indb.append(title)
+                    #I like "Matrix"
                     for movie in indb:
                         if self.titlesDict[movie] in self.userPrefs['movies'].keys():
                             # If the movie is already in the user's preferences
@@ -443,7 +438,7 @@ class Chatbot:
                         # perform collaborative filtering based on the user's
                         # preferences
                     unkString = ''
-                    if indb != set(movies):
+                    if indb != movies:
                         # The set of movies mentioned by the user which are not
                         # in the bot's database
                         unks = [movie for movie in movies if not movie in indb]
@@ -511,13 +506,14 @@ class Chatbot:
                     self.deixis = genres
                     response += "I am not sure what your opinion is about %s. Can you clarify?" % self.conjPhraseFromList(
                         genres, False)
-
+                    #like "Avatar" "sicario" "passengers" "batman" "scarface" "matrix"
                 elif sentiment and not genres:
                     if (float(self.askAboutEmotion) / 5.0).is_integer():
                         response += self.askForClarification()
                     else:
                         response += self.respondToEmotion(
                             sentimentWords, sentiment)
+                    
                 elif genres:
                     self.deixis=None # reset the deixis field
                     prevSame = [] # Already rated movies with unchanged rating
@@ -536,9 +532,9 @@ class Chatbot:
                             'so I will not be able to take them into account in my recommendation.'
                     # Create a string which represents the list of movies
                     genresString = self.conjPhraseFromList(genres, False)
-                    if prevSame: response += random.choice(["Well, I already had this information about %s.",
-                                                            "Yes, I am aware of your opinion about %s.",
-                                                            "Your rating of %s is already registered in the system, thank you."]) % self.conjPhraseFromList(prevSame, True)
+                    if prevSame: response += random.choice(["Well, I already had this information about %s. ",
+                                                            "Yes, I am aware of your opinion about %s. ",
+                                                            "Your rating of %s is already registered in the system, thank you. "]) % self.conjPhraseFromList(prevSame, True)
                     
                     if prevDiff: response += random.choice(['I am revising your opinion about %s... Done. ' ,
                                                         'Gotcha, updating your listed rating of %s... Done. ',
@@ -559,7 +555,8 @@ class Chatbot:
                         # If there is a movie but the sentiment is 0
                         response += 'I am not quite sure how you feel about %s' % genresString 
                         # If no movies were found in the response, ask for clarification.
-
+                else:
+                    response+=self.askForClarification()
             if self.firstTimeAskAboutGenres and self.getNumDataMovies() > self.numMoviesToAskAbout:
                 self.askAboutMovies = False
                 self.askAboutGenres = True
@@ -593,7 +590,7 @@ class Chatbot:
                 for movie in movPref:
                     vec[usrmvDict[movie]] = 1
                     vec[usrmvDict[movie]] = self.userPrefs['movies'][movie]
-                response += " Based on the data you gave me, my recommendation to you is: " + str(self.recommend(usrmvDict, genrePref, vec)) +"\nIf you want you can tell me about some more movies and genres so I can update my recommendation. Let's start with movies."
+                response += " Based on the data you gave me, my recommendation to you is: \"" + str(self.recommend(usrmvDict, genrePref, vec)) +"\"\nIf you want you can tell me about some more movies and genres so I can update my recommendation. Let's start with movies."
                 self.giveRecs=False
                 self.numMoviesToAskAbout += 5
                 self.numGenresToAskAbout += 5 
@@ -627,7 +624,9 @@ class Chatbot:
 
     splitWords = '(' + '|'.join(("and", "but", "yet",
                                  "though", ",", "\.", ";", "!")) + ')'
-
+    
+    #like "matrix"
+    # like "matrix (1999)"
     def isolateMovieNames(self, line):
         #statements = re.split(self.splitWords.strip(),line)
         # for i in range(0,len(statements),2):
@@ -635,23 +634,28 @@ class Chatbot:
         # Find all occurcenes of pairs (movie,year?) inside double quotation
         # marks
         moviesAndYear = [find for find in re.findall(
-            self.quatedMovieNamePatter, line)]
+            self.quatedMovieNamePatter, re.sub("(!|\?)",'',line.lower()))]
         # (year is optional)
         movies = []
         warnings = []
         for movie in moviesAndYear:
-            year = re.findall(" \((\d\d\d\d)\)$", movie[0])
-            if year:
+            movie=movie[0]
+            year = re.findall(" \((\d\d\d\d)\)$", movie)
+            if year: 
                 year=year[0]
-                movie = movie[0][:-7] 
-            else: movie=movie[0]
+            #if year:
+            #    year=year[0]
+            #    movie = movie[0][:-7] 
+            #else: movie=movie[0]
             # For each movie, year pair:
             # Get the mapped name of the movie the user talks about
             title = self.titlesDict.get(movie)
+            if not title:
+                title = self.titlesDict.get(movie[:-7])
             if title:
                 # If this movie has a name in the database, append the official
                 # name to the list of movies
-                movies.append(title[:-7])
+                movies.append(title)
             else:  # Otherwise, just append the name of the movie. this will not be taken into account in the user's preferences
                 movies.append(movie)
             if title and year and year != title[-5:-1]:
@@ -734,10 +738,14 @@ class Chatbot:
             string = "%s%s%s" % (qs, lst[0], qs)
         return string
 
-    articles = "(l'|de|di|der|das|die|la|le|the|an|a|L'|De|Di|Der|Das|Die|La|Le|The|An|A)"
-
+    articles = "(l'|de|di|der|das|die|la|le|the|an|a|L'|De|Di|Der|Das|Die|La|Le|The|An|A|il|Il)"
+    aka = '\(a\.k\.a\. ([^\(\)]+)\)'
+    
     def handleArticle(self, title):
         "Returns a set with all possible spelling variants of the title"
+        title=title.replace('a.k.a. ','')
+        title= title.replace('\xc3\x89','E')
+        title=re.sub("(!|\?)",'',title)
         # Get all expressions inside parantheses
         inParens = re.findall('( \(([^\(\)]+)\))', title)
         # Get all expressions that occur before a colon
@@ -754,11 +762,11 @@ class Chatbot:
             # Now for each recognized title:
             # Find articles at the end of the title (of the form ", the")
             find = re.findall(", %s" % self.articles, title.lower())
-            newTitles.append(title)  # Save unchanged basic title
+            #newTitles.append(title)  # Save unchanged basic title
             newTitles.append(title.lower())  # Save title with lowercase
             artsRemoved = re.sub('((^|\) )%s |, %s( \(|$))' % (
                 self.articles, self.articles), '', title)  # Title with articles removed
-            newTitles.append(artsRemoved)  # Save title with articles removed
+            #newTitles.append(artsRemoved)  # Save title with articles removed
             
             newTitles.append(artsRemoved.lower())
             
@@ -767,10 +775,10 @@ class Chatbot:
                 # to the beginning and save the result (both capitalized and
                 # lower)
                 
-                newTitles.append(find[0].capitalize() +
-                                 ' ' + title[:-2 - len(find[0])])
-                newTitles.append(find[0].lower() + ' ' +
-                                 title[:-2 - len(find[0])])
+                #newTitles.append(find[0].capitalize() +
+                 #                ' ' + title[:-2 - len(find[0])])
+                newTitles.append((find[0] + ' ' +
+                                 title[:-2 - len(find[0])]).lower())
             elif True:
                 newTitles.append(title)
         return set(newTitles)
@@ -792,6 +800,8 @@ class Chatbot:
         # Collect a list of all titles
         self.titlesPlain = [(title[0]) for title in self.titles]
         for title in self.titlesPlain:
+            year = title[-7:]
+            self.titlesDict[title] = title
             # For each title:
             # Get the set of all spelling variants using this method ([:-7]
             # ignores the year)
@@ -799,6 +809,7 @@ class Chatbot:
             for variant in handled:
                 # For each variant, add it to the titlesDict
                 self.titlesDict[variant] = title
+                self.titlesDict[variant+year] = title
             self.titlesWithoutYear = self.titlesWithoutYear.union(
                 handled)  # Keep track of all the existing titles
             # print self.titlesWithoutYear.union(handled)
